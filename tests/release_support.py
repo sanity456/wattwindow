@@ -49,7 +49,7 @@ def prepare(source_name, roles):
     local = os.environ.get("LOCALAPPDATA")
     if not local:
         raise RuntimeError("LOCALAPPDATA required for DPAPI wallet isolation")
-    folder = Path(local) / "GenLayerStudioNetBatchBC-20261012" / ROOT.name
+    folder = Path(local) / "GenLayerStudioNetBatchBC-v2-20261012" / ROOT.name
     folder.mkdir(parents=True, exist_ok=True)
     paths = [folder / f"{role}.dpapi" for role in roles]
     if any(path.exists() for path in paths) and not all(path.exists() for path in paths):

@@ -36,6 +36,10 @@
           "address"
         ],
         [
+          "witness",
+          "address"
+        ],
+        [
           "baseline_wh",
           "int"
         ],
@@ -50,6 +54,26 @@
       "payable": false
     },
     "submit_reading": {
+      "params": [
+        [
+          "event_id",
+          "string"
+        ],
+        [
+          "actual_wh",
+          "int"
+        ],
+        [
+          "report",
+          "string"
+        ]
+      ],
+      "kwparams": {},
+      "readonly": false,
+      "ret": "string",
+      "payable": false
+    },
+    "witness_reading": {
       "params": [
         [
           "event_id",
