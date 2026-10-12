@@ -1,0 +1,23 @@
+"""Opt-in full StudioNet flow; no wallet secret is stored in the repository."""
+import json
+import secrets
+
+from gltest.types import TransactionHashVariant
+from release_support import prepare, save_proof, send
+
+
+def test_studionet_wattwindow_flow():
+    ctx = prepare("watt_window.py", ("owner", "operator"))
+    contracts, accounts = ctx["contracts"], ctx["accounts"]
+    transactions = {"deploy": ctx["deployment_hash"]}
+    event_key = "release_" + secrets.token_hex(4)
+    context = "Declared 18:00-19:00 local demand-response interval on 2026-10-12; baseline is 1000 Wh."
+    send(transactions, "open_event", contracts["owner"].open_event(args=[event_key, context, accounts["operator"].address, 1000, 2000]))
+    event_id = accounts["owner"].address.lower() + ":" + event_key
+    opened = json.loads(contracts["owner"].get_event(args=[event_id]).call(transaction_hash_variant=TransactionHashVariant.LATEST_FINAL))
+    assert opened["status"] == "OPEN" and opened["baseline_wh"] == 1000
+    report = "For the declared 18:00-19:00 local interval on 2026-10-12, the baseline was 1000 Wh and the actual reading was 700 Wh."
+    send(transactions, "submit_reading", contracts["operator"].submit_reading(args=[event_id, 700, report]))
+    final = json.loads(contracts["owner"].get_event(args=[event_id]).call(transaction_hash_variant=TransactionHashVariant.LATEST_FINAL))
+    assert final["status"] == "QUALIFIED" and final["assessment"] == "SUPPORTED" and final["reduction_bps"] == 3000, final
+    save_proof(ctx, transactions, event_id, "QUALIFIED")

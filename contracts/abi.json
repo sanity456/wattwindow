@@ -1,0 +1,73 @@
+{
+  "ctor": {
+    "params": [],
+    "kwparams": {}
+  },
+  "methods": {
+    "get_event": {
+      "params": [
+        [
+          "event_id",
+          "string"
+        ]
+      ],
+      "kwparams": {},
+      "readonly": true,
+      "ret": "string"
+    },
+    "get_event_count": {
+      "params": [],
+      "kwparams": {},
+      "readonly": true,
+      "ret": "int"
+    },
+    "open_event": {
+      "params": [
+        [
+          "event_key",
+          "string"
+        ],
+        [
+          "context",
+          "string"
+        ],
+        [
+          "operator",
+          "address"
+        ],
+        [
+          "baseline_wh",
+          "int"
+        ],
+        [
+          "target_bps",
+          "int"
+        ]
+      ],
+      "kwparams": {},
+      "readonly": false,
+      "ret": "string",
+      "payable": false
+    },
+    "submit_reading": {
+      "params": [
+        [
+          "event_id",
+          "string"
+        ],
+        [
+          "actual_wh",
+          "int"
+        ],
+        [
+          "report",
+          "string"
+        ]
+      ],
+      "kwparams": {},
+      "readonly": false,
+      "ret": "string",
+      "payable": false
+    }
+  }
+}
