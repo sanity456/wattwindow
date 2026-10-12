@@ -1,6 +1,7 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 """Two-attestor demand-response settlement, not a physical meter oracle."""
 from genlayer import *
+import hashlib
 import json
 from typing import Any, cast
 
@@ -29,6 +30,17 @@ def account(value: Address) -> str:
 
 def pack(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def commitment_for(event_id: str, actual_wh: int, report: str, salt: str) -> str:
+    return hashlib.sha256(pack({"event_id": event_id, "actual_wh": actual_wh,
+        "report": report, "salt": salt}).encode("utf-8")).hexdigest()
+
+
+def hex_string(value: str, length: int) -> str:
+    if len(value) != length or any(c not in "0123456789abcdef" for c in value):
+        fail("invalid hexadecimal value")
+    return value
 
 
 def parse(value: Any) -> str:
@@ -95,14 +107,24 @@ class WattWindow(gl.Contract):
             fail("target out of range")
         self.events[event_id] = pack({"owner": owner, "operator": worker, "witness": observer, "context": text(context, 900),
             "baseline_wh": baseline_wh, "target_bps": target_bps, "status": "OPEN",
-            "operator_actual_wh": -1, "witness_actual_wh": -1, "reduction_bps": 0, "assessment": "PENDING"})
+            "witness_commitment": "", "operator_actual_wh": -1, "witness_actual_wh": -1,
+            "reduction_bps": 0, "assessment": "PENDING"})
         return event_id
+
+    @gl.public.write
+    def commit_witness(self, event_id: str, commitment: str) -> str:
+        event = self._load(event_id)
+        if account(gl.message.sender_address) != event["witness"] or event["status"] != "OPEN":
+            fail("open event witness only")
+        event.update({"witness_commitment": hex_string(commitment, 64), "status": "WITNESS_COMMITTED"})
+        self.events[event_id] = pack(event)
+        return "WITNESS_COMMITTED"
 
     @gl.public.write
     def submit_reading(self, event_id: str, actual_wh: int, report: str) -> str:
         event = self._load(event_id)
-        if account(gl.message.sender_address) != event["operator"] or event["status"] != "OPEN":
-            fail("open event operator only")
+        if account(gl.message.sender_address) != event["operator"] or event["status"] != "WITNESS_COMMITTED":
+            fail("committed event operator only")
         if actual_wh < 0 or actual_wh > 1000000000000:
             fail("reading out of range")
         evidence = text(report, 1200)
@@ -111,13 +133,16 @@ class WattWindow(gl.Contract):
         return "AWAITING_WITNESS"
 
     @gl.public.write
-    def witness_reading(self, event_id: str, actual_wh: int, report: str) -> str:
+    def witness_reading(self, event_id: str, actual_wh: int, report: str, salt: str) -> str:
         event = self._load(event_id)
         if account(gl.message.sender_address) != event["witness"] or event["status"] != "AWAITING_WITNESS":
             fail("pending event witness only")
         if actual_wh < 0 or actual_wh > 1000000000000:
             fail("reading out of range")
         evidence = text(report, 1200)
+        salt_value = hex_string(salt, 32)
+        if commitment_for(event_id, actual_wh, evidence, salt_value) != event["witness_commitment"]:
+            fail("witness reveal does not match commitment")
         if actual_wh != event["operator_actual_wh"]:
             event.update({"witness_actual_wh": actual_wh, "witness_report": evidence,
                 "assessment": "CONTRADICTED", "status": "DISPUTED"})

@@ -1,22 +1,23 @@
 {
-  "abi_sha256": "bd899961c27f95c8a4fe2dfac1cd5edce97f31a10189e39fc1f3abe549e2cdf8",
-  "contract_address": "0x5991Cd9efA516f5a20B8559BE8ECD4906Dfd6239",
+  "abi_sha256": "4ee402df1d9236a40dfb71ad6d1037aefc7e39dc39eb7d9024374c86a0de3832",
+  "contract_address": "0x077Ae1775F23F2E05Dc64a57d0Ca77C13e1083fa",
   "deployed_abi_matches_local": true,
-  "deployed_source_sha256": "30d6f56b2004421d049450f49b860f866b75a7df7b375973db056b410c54a0b1",
-  "deployment_transaction_hash": "0xf96d2e3358e016d4a31f29c83632ba03fde068c397845edd39c99746d4667222",
+  "deployed_source_sha256": "5d8226c808340be1f6c4d4af28c03cb07a52d8f71365b276a307dafab7c21ed6",
+  "deployment_transaction_hash": "0x0262ebb39ad309f44cec50d728f166005efa7b32a42ff20d7bef58ee56e3bc28",
   "full_flow_test": {
-    "completed_at_utc": "2026-10-12T12:47:17.918104+00:00",
+    "completed_at_utc": "2026-10-12T12:59:58.663791+00:00",
     "final_state": "QUALIFIED",
-    "source_sha256": "30d6f56b2004421d049450f49b860f866b75a7df7b375973db056b410c54a0b1",
+    "source_sha256": "5d8226c808340be1f6c4d4af28c03cb07a52d8f71365b276a307dafab7c21ed6",
     "status": "passed",
     "test_file": "tests/studionet_smoke.py",
     "transaction_hashes": {
-      "deploy": "0xf96d2e3358e016d4a31f29c83632ba03fde068c397845edd39c99746d4667222",
-      "open_event": "0x3dd316ff0854214297d81dd7ea1bd5c8c2ee011c7c2a8437fbe9f799d7423bb0",
-      "submit_reading": "0x32c6107becc569edfa9fe7215609c13003d9dd05fbe1942f8f65f00c64823822",
-      "witness_reading": "0x50be8993d70f593beffbad1251af2ac60abbf4f16ab4d33856c215ae9e214178"
+      "commit_witness": "0x189448d129c62ee9401bf6f1b5ea837c881f2b7c84a338110ffafff2d3373839",
+      "deploy": "0x0262ebb39ad309f44cec50d728f166005efa7b32a42ff20d7bef58ee56e3bc28",
+      "open_event": "0x840a1ddfa1c770c3c590e9b46cb7141e6d25cc036f2907aa281647c505bedfa2",
+      "submit_reading": "0xbeb120af9a16e298b1a7ad8d5327ea6433584a79a88f182ff67acb3a82098988",
+      "witness_reading": "0x9aa318102af4e495fcaf903275dc634ad97ebef47d754dc2c4de71b7c89beba0"
     },
-    "workflow_id": "0xf09109c8e9482ca63bc61be42dbe6eb04382e69f:release_c3f2f502"
+    "workflow_id": "0x10f57b518330ee4c71886da79deb32c92a8a475c:release_a4f59d6a"
   },
   "network": {
     "chain_id": 61999,
@@ -26,10 +27,10 @@
   "repository": "wattwindow",
   "schema": "genlayer-submission-evidence/v2",
   "source_bytes_match": true,
-  "source_sha256": "30d6f56b2004421d049450f49b860f866b75a7df7b375973db056b410c54a0b1",
+  "source_sha256": "5d8226c808340be1f6c4d4af28c03cb07a52d8f71365b276a307dafab7c21ed6",
   "wallet_addresses": {
-    "operator": "0xbDc2e012e52EAfBc5e949ED0EFb31F50E3a5cAF7",
-    "owner": "0xF09109c8E9482ca63bC61Be42dBe6Eb04382E69f",
-    "witness": "0x3eF0b2f78aC3af0663019C24806555B70658825F"
+    "operator": "0xb5f6D13F564ecDfe629CBFF0A929aEDe6bc4737E",
+    "owner": "0x10f57B518330ee4c71886dA79deB32C92A8A475C",
+    "witness": "0x5a465eC9b573874eE0a32452A7ccC9D8302F9629"
   }
 }

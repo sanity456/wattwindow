@@ -4,6 +4,22 @@
     "kwparams": {}
   },
   "methods": {
+    "commit_witness": {
+      "params": [
+        [
+          "event_id",
+          "string"
+        ],
+        [
+          "commitment",
+          "string"
+        ]
+      ],
+      "kwparams": {},
+      "readonly": false,
+      "ret": "string",
+      "payable": false
+    },
     "get_event": {
       "params": [
         [
@@ -85,6 +101,10 @@
         ],
         [
           "report",
+          "string"
+        ],
+        [
+          "salt",
           "string"
         ]
       ],
