@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 from release_support import rpc
 
@@ -15,12 +16,19 @@ def test_exact_submission_deployment_and_flow():
     sources = list((ROOT / "contracts").glob("*.py"))
     assert len(sources) == 1
     source = sources[0].read_bytes()
+    source_revision = manifest["source_revision"]
+    committed_source = subprocess.run(["git", "show", f"{source_revision['git_commit']}:{source_revision['path']}"],
+        cwd=ROOT, check=True, capture_output=True).stdout
     abi = json.loads((ROOT / "contracts" / "abi.json").read_text(encoding="utf-8"))
     source_hash = hashlib.sha256(source).hexdigest()
+    assert hashlib.sha256(committed_source).hexdigest() == source_hash
     address = manifest["contract_address"]
     assert rpc("eth_chainId", []) == "0xf22f"
     assert manifest["network"]["chain_id"] == 61999
     assert manifest["repository"] == ROOT.name
+    assert manifest["schema"] == "genlayer-submission-evidence/v3"
+    assert len(source_revision["git_commit"]) == 40
+    assert source_revision["path"] == f"contracts/{sources[0].name}"
     assert manifest["source_sha256"] == source_hash == manifest["deployed_source_sha256"]
     assert manifest["full_flow_test"]["source_sha256"] == source_hash
     assert manifest["full_flow_test"]["status"] == "passed"
@@ -29,6 +37,8 @@ def test_exact_submission_deployment_and_flow():
     assert base64.b64decode(rpc("gen_getContractCode", [address]), validate=True) == source
     assert rpc("gen_getContractSchema", [address]) == abi
     hashes = manifest["full_flow_test"]["transaction_hashes"]
+    explorer_links = manifest["explorer_links"]
+    assert explorer_links["contract"] == f"https://explorer-studio.genlayer.com/address/{address}"
     assert hashes["deploy"] == manifest["deployment_transaction_hash"]
     assert len(hashes) >= 2 and len(hashes) == len(set(hashes.values()))
     deployment = rpc("eth_getTransactionByHash", [hashes["deploy"]])
@@ -41,3 +51,18 @@ def test_exact_submission_deployment_and_flow():
         assert transaction["to_address"].lower() == address.lower(), label
         assert receipt["to"].lower() == address.lower(), label
         assert receipt["status"] == "0x1", label
+        assert explorer_links["transactions"][label] == f"https://explorer-studio.genlayer.com/tx/{transaction_hash}"
+    negative_hashes = manifest["negative_test_transactions"]
+    assert "reject_wrong_witness_reveal" in negative_hashes
+    for label, transaction_hash in negative_hashes.items():
+        transaction = rpc("eth_getTransactionByHash", [transaction_hash])
+        receipt = rpc("eth_getTransactionReceipt", [transaction_hash])
+        assert transaction is not None and receipt is not None, label
+        assert transaction["to_address"].lower() == address.lower(), label
+        assert receipt["to"].lower() == address.lower() and receipt["status"] == "0x1", label
+        assert explorer_links["transactions"][label] == f"https://explorer-studio.genlayer.com/tx/{transaction_hash}"
+    negative = manifest["negative_tests"]["wrong_witness_reveal"]
+    assert negative["transaction_hash"] == negative_hashes["reject_wrong_witness_reveal"]
+    assert negative["execution_result"] != "SUCCESS"
+    assert negative["expected_state_after"] == "AWAITING_WITNESS" and negative["state_unchanged"] is True
+    assert negative["state_after"]["status"] == "AWAITING_WITNESS"

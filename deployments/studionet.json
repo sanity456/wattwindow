@@ -4,6 +4,20 @@
   "deployed_abi_matches_local": true,
   "deployed_source_sha256": "5d8226c808340be1f6c4d4af28c03cb07a52d8f71365b276a307dafab7c21ed6",
   "deployment_transaction_hash": "0x0262ebb39ad309f44cec50d728f166005efa7b32a42ff20d7bef58ee56e3bc28",
+  "explorer_links": {
+    "contract": "https://explorer-studio.genlayer.com/address/0x077Ae1775F23F2E05Dc64a57d0Ca77C13e1083fa",
+    "transactions": {
+      "commit_witness": "https://explorer-studio.genlayer.com/tx/0x189448d129c62ee9401bf6f1b5ea837c881f2b7c84a338110ffafff2d3373839",
+      "deploy": "https://explorer-studio.genlayer.com/tx/0x0262ebb39ad309f44cec50d728f166005efa7b32a42ff20d7bef58ee56e3bc28",
+      "open_event": "https://explorer-studio.genlayer.com/tx/0x840a1ddfa1c770c3c590e9b46cb7141e6d25cc036f2907aa281647c505bedfa2",
+      "submit_reading": "https://explorer-studio.genlayer.com/tx/0xbeb120af9a16e298b1a7ad8d5327ea6433584a79a88f182ff67acb3a82098988",
+      "witness_reading": "https://explorer-studio.genlayer.com/tx/0x9aa318102af4e495fcaf903275dc634ad97ebef47d754dc2c4de71b7c89beba0",
+      "guard_commit_witness": "https://explorer-studio.genlayer.com/tx/0xf8de4e7dba52df99abce554ec162f22d0f510738fe8afe70f7fd534de0cf7f72",
+      "guard_submit_reading": "https://explorer-studio.genlayer.com/tx/0x996cf769673dfeef85ac56b1668f21de6548b92b415bea5b14aa534ff4d8f92d",
+      "open_guard_event": "https://explorer-studio.genlayer.com/tx/0x9a35670a5384f8dcad5cf76a995b07f5cd872abc6f09b7a9f492fcc7c8221e09",
+      "reject_wrong_witness_reveal": "https://explorer-studio.genlayer.com/tx/0xa5b7d034045a361a246240a57b942902d123077c490854298ad676c4102255ba"
+    }
+  },
   "full_flow_test": {
     "completed_at_utc": "2026-10-12T12:59:58.663791+00:00",
     "final_state": "QUALIFIED",
@@ -19,14 +33,48 @@
     },
     "workflow_id": "0x10f57b518330ee4c71886da79deb32c92a8a475c:release_a4f59d6a"
   },
+  "negative_test_transactions": {
+    "guard_commit_witness": "0xf8de4e7dba52df99abce554ec162f22d0f510738fe8afe70f7fd534de0cf7f72",
+    "guard_submit_reading": "0x996cf769673dfeef85ac56b1668f21de6548b92b415bea5b14aa534ff4d8f92d",
+    "open_guard_event": "0x9a35670a5384f8dcad5cf76a995b07f5cd872abc6f09b7a9f492fcc7c8221e09",
+    "reject_wrong_witness_reveal": "0xa5b7d034045a361a246240a57b942902d123077c490854298ad676c4102255ba"
+  },
+  "negative_tests": {
+    "wrong_witness_reveal": {
+      "event_id": "0x10f57b518330ee4c71886da79deb32c92a8a475c:guard_73be5c96",
+      "execution_result": "ERROR",
+      "expected_state_after": "AWAITING_WITNESS",
+      "state_after": {
+        "assessment": "PENDING",
+        "baseline_wh": 1000,
+        "context": "Declared 19:00-20:00 local interval; baseline is 1000 Wh.",
+        "operator": "0xb5f6d13f564ecdfe629cbff0a929aede6bc4737e",
+        "operator_actual_wh": 700,
+        "operator_report": "For the declared 19:00-20:00 local interval, actual reading was 700 Wh against 1000 Wh baseline.",
+        "owner": "0x10f57b518330ee4c71886da79deb32c92a8a475c",
+        "reduction_bps": 0,
+        "status": "AWAITING_WITNESS",
+        "target_bps": 2000,
+        "witness": "0x5a465ec9b573874ee0a32452a7ccc9d8302f9629",
+        "witness_actual_wh": -1,
+        "witness_commitment": "a38945967b93508e1a3bddc61da3e2a0bb300e027493d292d1a1eca090d10821"
+      },
+      "state_unchanged": true,
+      "transaction_hash": "0xa5b7d034045a361a246240a57b942902d123077c490854298ad676c4102255ba"
+    }
+  },
   "network": {
     "chain_id": 61999,
     "name": "studionet",
     "rpc": "https://studio.genlayer.com/api"
   },
   "repository": "wattwindow",
-  "schema": "genlayer-submission-evidence/v2",
+  "schema": "genlayer-submission-evidence/v3",
   "source_bytes_match": true,
+  "source_revision": {
+    "git_commit": "863c7f2bcdc5059f2a8133afeb549c360377f3aa",
+    "path": "contracts/watt_window.py"
+  },
   "source_sha256": "5d8226c808340be1f6c4d4af28c03cb07a52d8f71365b276a307dafab7c21ed6",
   "wallet_addresses": {
     "operator": "0xb5f6D13F564ecDfe629CBFF0A929aEDe6bc4737E",

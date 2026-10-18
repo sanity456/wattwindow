@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import subprocess
 import time
 
 from eth_account import Account
@@ -17,6 +18,29 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 RPC = "https://studio.genlayer.com/api"
+EXPLORER = "https://explorer-studio.genlayer.com"
+
+
+def install_provider_retry():
+    """Retry transient StudioNet gateway errors while gltest waits for receipts."""
+    from genlayer_py.provider.provider import GenLayerProvider
+
+    original = GenLayerProvider.make_request
+    if getattr(original, "_studio_retry", False):
+        return
+
+    def resilient(self, method, params):
+        for attempt in range(6):
+            try:
+                return original(self, method, params)
+            except Exception as error:
+                transient = any(token in str(error).lower() for token in ("502", "503", "504", "bad gateway", "invalid json"))
+                if not transient or attempt == 5:
+                    raise
+                time.sleep(2 + attempt * 2)
+
+    resilient._studio_retry = True
+    GenLayerProvider.make_request = resilient
 
 
 def rpc(method, params):
@@ -45,6 +69,7 @@ def receipt_hash(receipt):
 
 
 def prepare(source_name, roles):
+    install_provider_retry()
     import win32crypt
     local = os.environ.get("LOCALAPPDATA")
     if not local:
@@ -95,16 +120,51 @@ def send(transactions, label, call):
     transactions[label] = receipt_hash(receipt)
 
 
-def save_proof(ctx, transactions, flow_id, final_state):
+def reject(transactions, label, call):
+    receipt = call.transact(wait_transaction_status=TransactionStatus.FINALIZED, wait_interval=10000, wait_retries=300)
+    assert not tx_execution_succeeded(receipt), json.dumps(receipt, default=str)
+    consensus = receipt.get("consensus_data", {})
+    leaders = consensus.get("leader_receipt", [])
+    assert leaders, json.dumps(receipt, default=str)
+    result = leaders[0].get("execution_result")
+    assert result not in (None, "SUCCESS"), json.dumps(receipt, default=str)
+    transaction_hash = receipt_hash(receipt)
+    transactions[label] = transaction_hash
+    return {"transaction_hash": transaction_hash, "execution_result": result}
+
+
+def save_proof(ctx, transactions, flow_id, final_state, negative_tests=None):
     (ROOT / "deployments").mkdir(parents=True, exist_ok=True)
-    record = {"schema": "genlayer-submission-evidence/v2", "network": {"name": "studionet", "chain_id": 61999, "rpc": RPC}, "repository": ROOT.name,
+    source_name = next(path.name for path in (ROOT / "contracts").glob("*.py"))
+    source_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
+    record = {"schema": "genlayer-submission-evidence/v3", "network": {"name": "studionet", "chain_id": 61999, "rpc": RPC}, "repository": ROOT.name,
         "contract_address": ctx["address"], "deployment_transaction_hash": ctx["deployment_hash"],
         "wallet_addresses": {role: account.address for role, account in ctx["accounts"].items()},
         "source_sha256": ctx["source_sha256"], "deployed_source_sha256": ctx["source_sha256"], "source_bytes_match": True,
         "deployed_abi_matches_local": True,
         "abi_sha256": hashlib.sha256(json.dumps(ctx["abi"], sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+        "source_revision": {"git_commit": source_commit, "path": f"contracts/{source_name}"},
+        "explorer_links": {"contract": f"{EXPLORER}/address/{ctx['address']}",
+            "transactions": {label: f"{EXPLORER}/tx/{transaction_hash}" for label, transaction_hash in transactions.items()}},
         "full_flow_test": {"status": "passed", "workflow_id": flow_id, "final_state": final_state,
             "transaction_hashes": transactions, "completed_at_utc": datetime.now(timezone.utc).isoformat(),
-            "test_file": "tests/studionet_smoke.py", "source_sha256": ctx["source_sha256"]}}
+            "test_file": "tests/studionet_smoke.py", "source_sha256": ctx["source_sha256"]},
+        "negative_tests": negative_tests or {}}
     (ROOT / "deployments" / "studionet.json").write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"contract_address": ctx["address"], "final_state": final_state, "wallet_addresses": record["wallet_addresses"]}, sort_keys=True))
+
+
+def save_negative_proof(transactions, name, details):
+    path = ROOT / "deployments" / "studionet.json"
+    record = json.loads(path.read_text(encoding="utf-8"))
+    source = next((ROOT / "contracts").glob("*.py"))
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == record["source_sha256"]
+    source_name = source.name
+    record["schema"] = "genlayer-submission-evidence/v3"
+    record["source_revision"] = {"git_commit": subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+        check=True, capture_output=True, text=True).stdout.strip(), "path": f"contracts/{source_name}"}
+    record["negative_test_transactions"] = transactions
+    links = record.setdefault("explorer_links", {"contract": f"{EXPLORER}/address/{record['contract_address']}", "transactions": {}})
+    links["transactions"].update({label: f"{EXPLORER}/tx/{transaction_hash}" for label, transaction_hash in transactions.items()})
+    record["negative_tests"] = {name: details}
+    path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")

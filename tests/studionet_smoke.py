@@ -4,7 +4,7 @@ import json
 import secrets
 
 from gltest.types import TransactionHashVariant
-from release_support import prepare, save_proof, send
+from release_support import prepare, reject, save_negative_proof, save_proof, send
 
 
 def test_studionet_wattwindow_flow():
@@ -28,4 +28,32 @@ def test_studionet_wattwindow_flow():
     send(transactions, "witness_reading", contracts["witness"].witness_reading(args=[event_id, 700, witness_report, salt]))
     final = json.loads(contracts["owner"].get_event(args=[event_id]).call(transaction_hash_variant=TransactionHashVariant.LATEST_FINAL))
     assert final["status"] == "QUALIFIED" and final["assessment"] == "SUPPORTED" and final["reduction_bps"] == 3000, final
+
     save_proof(ctx, transactions, event_id, "QUALIFIED")
+
+
+def test_studionet_wrong_reveal_guard():
+    ctx = prepare("watt_window.py", ("owner", "operator", "witness"))
+    contracts, accounts = ctx["contracts"], ctx["accounts"]
+    transactions = {}
+    # Live abuse-prevention demo: an incorrect witness reveal must fail and leave
+    # the pending event byte-for-byte unchanged. This path avoids the LLM call.
+    guard_key = "guard_" + secrets.token_hex(4)
+    guard_context = "Declared 19:00-20:00 local interval; baseline is 1000 Wh."
+    send(transactions, "open_guard_event", contracts["owner"].open_event(args=[guard_key, guard_context, accounts["operator"].address, accounts["witness"].address, 1000, 2000]))
+    guard_id = accounts["owner"].address.lower() + ":" + guard_key
+    guard_report = "For the declared 19:00-20:00 local interval, actual reading was 700 Wh against 1000 Wh baseline."
+    guard_salt = secrets.token_hex(16)
+    guard_payload = json.dumps({"event_id": guard_id, "actual_wh": 700, "report": guard_report, "salt": guard_salt},
+        sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    guard_commitment = hashlib.sha256(guard_payload.encode("utf-8")).hexdigest()
+    send(transactions, "guard_commit_witness", contracts["witness"].commit_witness(args=[guard_id, guard_commitment]))
+    send(transactions, "guard_submit_reading", contracts["operator"].submit_reading(args=[guard_id, 700, guard_report]))
+    before_rejection = json.loads(contracts["owner"].get_event(args=[guard_id]).call(transaction_hash_variant=TransactionHashVariant.LATEST_FINAL))
+    wrong_salt = "0" * 32 if guard_salt != "0" * 32 else "1" * 32
+    rejected = reject(transactions, "reject_wrong_witness_reveal", contracts["witness"].witness_reading(args=[guard_id, 700, guard_report, wrong_salt]))
+    after_rejection = json.loads(contracts["owner"].get_event(args=[guard_id]).call(transaction_hash_variant=TransactionHashVariant.LATEST_FINAL))
+    assert after_rejection == before_rejection and after_rejection["status"] == "AWAITING_WITNESS", after_rejection
+    negative_tests = {"wrong_witness_reveal": {**rejected, "event_id": guard_id,
+        "expected_state_after": "AWAITING_WITNESS", "state_unchanged": True, "state_after": after_rejection}}
+    save_negative_proof(transactions, "wrong_witness_reveal", negative_tests["wrong_witness_reveal"])
